@@ -1,6 +1,15 @@
 package org.opentripplanner.gtfs.graphbuilder;
 
+import com.google.common.io.Files;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +86,9 @@ public class GtfsModule implements GraphBuilderModule {
   private final double maxStopToShapeSnapDistance;
   private final int subwayAccessTime_s;
 
+  private final String errorsFileName = "ERRORS\\builder_errors.txt";
+  private List<File> gtfsBundlesToDelete = new ArrayList<File>();
+
   public GtfsModule(
     List<GtfsBundle> bundles,
     TimetableRepository timetableRepository,
@@ -126,14 +138,30 @@ public class GtfsModule implements GraphBuilderModule {
 
   @Override
   public void buildGraph() {
+    File errorsFile = null;
+    FileWriter errors = null;
+
     CalendarServiceData calendarServiceData = new CalendarServiceData();
 
     Map<String, GtfsBundle> feedIdsEncountered = new HashMap<>();
 
     try {
       for (GtfsBundle gtfsBundle : gtfsBundles) {
+        // disabilitate le cartelle che contengono i txt esplosi
+        Path path = Paths.get(gtfsBundle.getPath());
+        if (path.toFile().isDirectory()) {
+          LOG.warn("GTFS Folders disabled: {}", gtfsBundle.getPath());
+          continue;
+        }
+        if (errorsFile == null) try {
+          errorsFile = new File(path.getParent() + "\\" + errorsFileName);
+          Files.createParentDirs(errorsFile);
+          errorsFile.createNewFile();
+          errors = new FileWriter(errorsFile);
+        } catch (IOException e) {
+          LOG.error("Creating log error file: {}", e.toString());
+        }
         var gtfsDao = loadBundle(gtfsBundle);
-
         var feedId = gtfsBundle.getFeedId();
         verifyUniqueFeedId(gtfsBundle, feedIdsEncountered, feedId);
 
@@ -147,9 +175,34 @@ public class GtfsModule implements GraphBuilderModule {
           gtfsBundle.parameters().stationTransferPreference()
         );
         mapper.mapStopTripAndRouteDataIntoBuilder(gtfsDao);
-
         TransitDataImportBuilder builder = mapper.getBuilder();
         var fareRulesData = mapper.fareRulesData();
+        try {
+          // We need to run this after the cleaning of the data, as stop indices might have changed
+          mapper.mapAndAddTransfersToBuilder(gtfsDao);
+
+          fareServiceFactory.processGtfs(fareRulesData);
+        } catch (Exception e) {
+          File fileBundle = new File(gtfsBundle.getPath());
+          gtfsBundlesToDelete.add(fileBundle);
+          Files.copy(
+            fileBundle,
+            new File(errorsFile.getParentFile() + "\\" + fileBundle.getName())
+          );
+          LocalDateTime sysDT = LocalDateTime.now();
+          String str =
+            "DATE:" +
+            DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT).format(
+              sysDT
+            ) +
+            System.getProperty("line.separator");
+          str += "FILE:" + gtfsBundle.getPath() + System.getProperty("line.separator");
+          str += "ERROR:" + e.toString() + System.getProperty("line.separator");
+          str += System.getProperty("line.separator");
+          LOG.error("error reading {}: {}", gtfsBundle.toString(), e.toString());
+          errors.write(str);
+          continue;
+        }
 
         builder.limitServiceDays(transitPeriodLimit);
 
@@ -166,9 +219,6 @@ public class GtfsModule implements GraphBuilderModule {
         }
 
         validateAndInterpolateStopTimesForEachTrip(builder.getStopTimesSortedByTrip(), issueStore);
-
-        // We need to run this after the cleaning of the data, as stop indices might have changed
-        mapper.mapAndAddTransfersToBuilder(gtfsDao);
 
         GeometryProcessor geometryProcessor = new GeometryProcessor(
           builder,
@@ -204,8 +254,6 @@ public class GtfsModule implements GraphBuilderModule {
             calendarServiceData
           ).run(dataImport.getTripPatterns());
         }
-
-        fareServiceFactory.processGtfs(fareRulesData);
       }
     } catch (IOException e) {
       throw new RuntimeException(e);

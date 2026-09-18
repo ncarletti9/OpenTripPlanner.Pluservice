@@ -134,6 +134,7 @@ public class StreetSearchRequestMapper {
       .withStairsReluctance(pref.stairsReluctance())
       .withStairsTimeFactor(pref.stairsTimeFactor())
       .withSafetyFactor(pref.safetyFactor())
+      .withMaxWalkDistance(pref.maxWalkDistance())
       .withEscalator(b2 -> mapEscalator(b2, pref.escalator()));
   }
 

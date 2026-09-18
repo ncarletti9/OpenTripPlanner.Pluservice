@@ -62,7 +62,7 @@ public class Routers {
   private ApiRouterInfo getRouterInfo() {
     try {
       return new ApiRouterInfo(
-        "default",
+        serverContext.graph().routerId,
         serverContext.graph(),
         serverContext.transitService(),
         serverContext.vehicleRentalService(),

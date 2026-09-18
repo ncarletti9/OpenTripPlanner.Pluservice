@@ -82,4 +82,8 @@ public final class GtfsBundle {
   public String feedInfo() {
     return "GTFS bundle at " + dataSource.path() + " (" + getFeedId() + ")";
   }
+
+  public String getPath() {
+    return this.dataSource.path();
+  }
 }

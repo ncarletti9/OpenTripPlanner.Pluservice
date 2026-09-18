@@ -1,5 +1,6 @@
 package org.opentripplanner.routing.algorithm.raptoradapter.router.street;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,6 +25,10 @@ public class DirectFlexRouter {
     AdditionalSearchDays additionalSearchDays,
     LinkingContext linkingContext
   ) {
+    double speedDuration = request.maxWalkDistance() / request.preferences().walk().speed();
+    long roundedSpeedDuration = Math.round(speedDuration);
+    Duration duration = Duration.ofSeconds(roundedSpeedDuration);
+
     var accessEgressRouter = new AccessEgressRouter(
       new TransitServiceResolver(serverContext.transitService())
     );
@@ -37,7 +42,7 @@ public class DirectFlexRouter {
       request.journey().direct().mode(),
       serverContext.listExtensionRequestContexts(request),
       AccessEgressType.ACCESS,
-      serverContext.flexParameters().maxAccessWalkDuration(),
+      duration,
       0,
       linkingContext
     );
@@ -46,7 +51,7 @@ public class DirectFlexRouter {
       request.journey().direct().mode(),
       serverContext.listExtensionRequestContexts(request),
       AccessEgressType.EGRESS,
-      serverContext.flexParameters().maxEgressWalkDuration(),
+      duration,
       0,
       linkingContext
     );

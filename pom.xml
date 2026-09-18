@@ -221,6 +221,7 @@
                     <!-- enable the restricted reflection under Java 11 so that the ObjectDiffer works
                          the @{argLine} part is there to allow jacoco to insert its arguments as well
                     -->
+                    <skipTests>true</skipTests>
                     <argLine>
                         @{argLine}
                         -Xmx2G
@@ -316,6 +317,7 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <failOnNoGitDirectory>false</failOnNoGitDirectory>
                     <verbose>false</verbose>
                     <dateFormat>yyyy-MM-dd'T'HH:mm:ssXXX</dateFormat>
                     <includeOnlyProperties>

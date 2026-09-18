@@ -94,6 +94,7 @@ public class GraphPathFinder {
     } else {
       duration = Duration.ofSeconds(roundedSpeedDuration);
     }
+
     StreetSearchBuilder aStar = StreetSearchBuilder.of()
       .withPreStartHook(OTPRequestTimeoutException::checkForTimeout)
       .withHeuristic(new EuclideanRemainingWeightHeuristic(maxCarSpeed))

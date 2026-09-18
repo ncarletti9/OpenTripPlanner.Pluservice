@@ -153,8 +153,8 @@ public final class WalkPreferences implements Serializable {
       stairsReluctance,
       stairsTimeFactor,
       safetyFactor,
-      escalator,
-      maxWalkDistance
+      maxWalkDistance,
+      escalator
     );
   }
 
@@ -167,8 +167,8 @@ public final class WalkPreferences implements Serializable {
       .addNum("stairsReluctance", stairsReluctance, DEFAULT.stairsReluctance)
       .addNum("stairsTimeFactor", stairsTimeFactor, DEFAULT.stairsTimeFactor)
       .addNum("safetyFactor", safetyFactor, DEFAULT.safetyFactor)
-      .addObj("escalator", escalator, DEFAULT.escalator)
       .addNum("maxWalkDistance", maxWalkDistance, DEFAULT.maxWalkDistance)
+      .addObj("escalator", escalator, DEFAULT.escalator)
       .toString();
   }
 

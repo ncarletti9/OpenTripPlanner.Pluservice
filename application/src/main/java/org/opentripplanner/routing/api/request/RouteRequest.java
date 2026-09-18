@@ -76,8 +76,11 @@ public class RouteRequest implements Serializable {
   private RoutingPreferences preferences;
   private int numItineraries;
   private final boolean defaultRequest;
-  private final int maxWalkDistance;
   private boolean wheelchair = false;
+
+  public boolean walkOnlyPermitted = false;
+
+  public double maxWalkDistance = 1500.0;
 
   /* CONSTRUCTORS */
 
@@ -97,7 +100,6 @@ public class RouteRequest implements Serializable {
     this.preferences = RoutingPreferences.DEFAULT;
     this.numItineraries = DEFAULT_NUM_ITINERARIES;
     this.defaultRequest = true;
-    this.maxWalkDistance = 10000;
   }
 
   RouteRequest(RouteRequestBuilder builder) {
@@ -358,10 +360,6 @@ public class RouteRequest implements Serializable {
     return searchWindow;
   }
 
-  public int maxWalkDistance() {
-    return maxWalkDistance;
-  }
-
   public void setFrom(GenericLocation from) {
     this.from = from;
   }
@@ -411,6 +409,14 @@ public class RouteRequest implements Serializable {
 
   public void setNumItineraries(int numItineraries) {
     this.numItineraries = numItineraries;
+  }
+
+  public double maxWalkDistance() {
+    return maxWalkDistance;
+  }
+
+  public void setMaxWalkDistance(double maxWalkDistance) {
+    this.maxWalkDistance = maxWalkDistance;
   }
 
   public void setArriveBy(boolean arriveBy) {

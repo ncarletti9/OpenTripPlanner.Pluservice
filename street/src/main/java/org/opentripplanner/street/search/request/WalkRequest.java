@@ -26,6 +26,7 @@ public final class WalkRequest {
   private final double stairsReluctance;
   private final double stairsTimeFactor;
   private final double safetyFactor;
+  private final double maxWalkDistance;
 
   private final EscalatorRequest escalator;
 
@@ -36,6 +37,7 @@ public final class WalkRequest {
     this.stairsTimeFactor = 3.0;
     this.safetyFactor = 1.0;
     this.escalator = EscalatorRequest.DEFAULT;
+    this.maxWalkDistance = 1500.0;
   }
 
   private WalkRequest(Builder builder) {
@@ -45,6 +47,7 @@ public final class WalkRequest {
     this.stairsTimeFactor = Units.reluctance(builder.stairsTimeFactor);
     this.safetyFactor = Units.reluctance(builder.safetyFactor);
     this.escalator = builder.escalator;
+    this.maxWalkDistance = builder.maxWalkDistance;
   }
 
   public static Builder of() {
@@ -98,6 +101,10 @@ public final class WalkRequest {
     return safetyFactor;
   }
 
+  public double maxWalkDistance() {
+    return maxWalkDistance;
+  }
+
   public EscalatorRequest escalator() {
     return escalator;
   }
@@ -117,6 +124,7 @@ public final class WalkRequest {
       doubleEquals(that.stairsReluctance, stairsReluctance) &&
       doubleEquals(that.stairsTimeFactor, stairsTimeFactor) &&
       doubleEquals(that.safetyFactor, safetyFactor) &&
+      doubleEquals(that.maxWalkDistance, maxWalkDistance) &&
       escalator.equals(that.escalator)
     );
   }
@@ -129,6 +137,7 @@ public final class WalkRequest {
       stairsReluctance,
       stairsTimeFactor,
       safetyFactor,
+      maxWalkDistance,
       escalator
     );
   }
@@ -141,6 +150,7 @@ public final class WalkRequest {
       .addNum("stairsReluctance", stairsReluctance, DEFAULT.stairsReluctance)
       .addNum("stairsTimeFactor", stairsTimeFactor, DEFAULT.stairsTimeFactor)
       .addNum("safetyFactor", safetyFactor, DEFAULT.safetyFactor)
+      .addNum("maxWalkDistance", maxWalkDistance, DEFAULT.maxWalkDistance)
       .addObj("escalator", escalator, DEFAULT.escalator)
       .toString();
   }
@@ -153,6 +163,7 @@ public final class WalkRequest {
     private double stairsReluctance;
     private double stairsTimeFactor;
     private double safetyFactor;
+    private double maxWalkDistance;
 
     private EscalatorRequest escalator;
 
@@ -163,6 +174,7 @@ public final class WalkRequest {
       this.stairsReluctance = original.stairsReluctance;
       this.stairsTimeFactor = original.stairsTimeFactor;
       this.safetyFactor = original.safetyFactor;
+      this.maxWalkDistance = original.maxWalkDistance;
       this.escalator = original.escalator;
     }
 
@@ -214,6 +226,10 @@ public final class WalkRequest {
       return this;
     }
 
+    public Builder withMaxWalkDistance(double maxWalkDistance) {
+      this.maxWalkDistance = maxWalkDistance;
+      return this;
+    }
     public Builder apply(Consumer<Builder> body) {
       body.accept(this);
       return this;

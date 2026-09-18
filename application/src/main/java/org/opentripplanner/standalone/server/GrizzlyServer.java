@@ -119,8 +119,8 @@ public class GrizzlyServer {
       cc.setCompressionMinSize(50000);
       // the mime types to compress
       cc.setCompressibleMimeTypes(MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML);
-      httpListener.getTransport().setWorkerThreadPoolConfig(threadPoolConfig);
-      httpListener.setTransactionTimeout((int) httpTransactionTimeout.toSeconds());
+      listener.getTransport().setWorkerThreadPoolConfig(threadPoolConfig);
+
       httpServer.addListener(httpListener);
     }
 

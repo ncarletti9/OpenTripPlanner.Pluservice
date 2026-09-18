@@ -27,7 +27,7 @@ public class RouteViaRequest implements Serializable {
   private final RoutingPreferences preferences;
   private final Locale locale;
   private final Integer numItineraries;
-  private final int maxWalkDistance;
+  private final Double maxWalkDistance;
 
   private RouteViaRequest(
     List<ViaLocationDeprecated> viaLocations,
@@ -52,7 +52,7 @@ public class RouteViaRequest implements Serializable {
     this.preferences = RoutingPreferences.DEFAULT;
     this.locale = null;
     this.numItineraries = null;
-    this.maxWalkDistance = 10000;
+    this.maxWalkDistance = null;
 
     // Last ViaSegment has no ViaLocation
     for (int i = 0; i < viaJourneys.size(); i++) {
@@ -157,7 +157,7 @@ public class RouteViaRequest implements Serializable {
       Objects.equals(locale, other.locale) &&
       preferences.equals(other.preferences) &&
       Objects.equals(numItineraries, other.numItineraries) &&
-      maxWalkDistance == other.maxWalkDistance
+      maxWalkDistance.equals(other.maxWalkDistance)
     );
   }
 
@@ -188,7 +188,7 @@ public class RouteViaRequest implements Serializable {
     private boolean wheelchair;
     private RoutingPreferences preferences;
     private Integer numItineraries;
-    private int maxWalkDistance;
+    private Double maxWalkDistance;
 
     public Builder(RouteViaRequest original) {
       this.from = original.from;
@@ -246,7 +246,7 @@ public class RouteViaRequest implements Serializable {
       return this;
     }
 
-    public Builder withMaxWalkDistance(int maxWalkDistance) {
+    public Builder withMaxWalkDistance(Double maxWalkDistance) {
       this.maxWalkDistance = maxWalkDistance;
       return this;
     }

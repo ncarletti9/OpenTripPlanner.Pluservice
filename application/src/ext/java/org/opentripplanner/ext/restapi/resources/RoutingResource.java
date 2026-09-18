@@ -4,6 +4,7 @@ import static org.opentripplanner.api.common.LocationStringParser.fromOldStyleSt
 import static org.opentripplanner.ext.restapi.resources.RequestToPreferencesMapper.setIfNotNull;
 
 import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MultivaluedMap;
@@ -12,14 +13,19 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import org.opentripplanner.api.parameter.QualifiedModeSet;
+import org.opentripplanner.core.model.id.FeedScopedId;
 import org.opentripplanner.ext.dataoverlay.api.DataOverlayParameters;
 import org.opentripplanner.ext.restapi.mapping.LegacyVehicleRoutingOptimizeType;
 import org.opentripplanner.framework.application.OTPFeature;
@@ -33,6 +39,7 @@ import org.opentripplanner.standalone.config.framework.file.ConfigFileLoader;
 import org.opentripplanner.standalone.config.framework.json.NodeAdapter;
 import org.opentripplanner.standalone.config.routerequest.RouteRequestConfig;
 import org.opentripplanner.transit.model.basic.MainAndSubMode;
+import org.opentripplanner.transit.model.organization.Agency;
 import org.opentripplanner.utils.lang.StringUtils;
 import org.opentripplanner.utils.time.DurationUtils;
 import org.slf4j.Logger;
@@ -171,6 +178,12 @@ public abstract class RoutingResource {
   @Deprecated
   @QueryParam("wheelchair")
   protected Boolean wheelchair;
+
+  @QueryParam("maxWalkDistance")
+  protected Double maxWalkDistance;
+
+  @HeaderParam("bannedAgencies")
+  private String bannedAgenciesExtra;
 
   @QueryParam("bookingTime")
   protected String bookingTime;
@@ -678,6 +691,9 @@ public abstract class RoutingResource {
   @QueryParam("debugRaptorPath")
   private String debugRaptorPath;
 
+  @QueryParam("walkOnlyPermitted")
+  private Boolean walkOnlyPermitted;
+
   /**
    * This takes a RouteRequest as JSON and uses it as the default before applying other
    * parameters. This is intended for debugging only! The RouteRequest is an internal OTP
@@ -770,9 +786,37 @@ public abstract class RoutingResource {
         setIfNotNull(bannedTrips, journey.transit()::setBannedTripsFromString);
 
         // Excluded entities
-        setIfNotNull(bannedAgencies, s ->
-          filterBuilder.addNot(SelectRequest.of().withAgenciesFromString(s).build())
-        );
+        // Aggiunta nuova stringa bannedAgenciesNew cosi da creare la stringa mantenendo la nuove versione del filtro
+        String bannedAgenciesNew = null;
+
+        if (bannedAgencies != null || bannedAgenciesExtra != null) {
+          List<String> bannedAgenciesList = new ArrayList<>(
+            Arrays.asList(
+              bannedAgencies != null ? bannedAgencies.split(",") : bannedAgenciesExtra.split(",")
+            )
+          );
+          bannedAgenciesList = bannedAgenciesList.stream().distinct().collect(Collectors.toList());
+          var bannedAgenciesStr = String.join(",", bannedAgenciesList);
+          if (bannedAgenciesStr.contains(":")) {
+            bannedAgenciesNew = bannedAgenciesStr;
+          } else {
+            Collection<Agency> agencies = serverContext.transitService().listAgencies();
+            Collection<FeedScopedId> ids = new HashSet<>();
+            for (Agency agency : agencies) {
+              if (bannedAgenciesList.contains(agency.getId().getId())) ids.add(agency.getId());
+            }
+            bannedAgenciesNew = ids
+              .stream()
+              .map(FeedScopedId::toString)
+              .collect(Collectors.joining(","));
+          }
+        }
+
+        if (bannedAgenciesNew != null && !bannedAgenciesNew.isEmpty()) {
+          setIfNotNull(bannedAgenciesNew, s ->
+            filterBuilder.addNot(SelectRequest.of().withAgenciesFromString(s).build())
+          );
+        }
 
         setIfNotNull(bannedRoutes, s ->
           filterBuilder.addNot(SelectRequest.of().withRoutesFromString(s).build())
@@ -839,6 +883,13 @@ public abstract class RoutingResource {
         }
       }
     });
+    if (walkOnlyPermitted != null) {
+      request.walkOnlyPermitted = walkOnlyPermitted;
+    }
+
+    if (maxWalkDistance != null) {
+      request.maxWalkDistance = maxWalkDistance;
+    }
     return request;
   }
 

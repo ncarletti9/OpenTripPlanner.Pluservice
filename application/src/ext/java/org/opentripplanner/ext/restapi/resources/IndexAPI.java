@@ -1,5 +1,8 @@
 package org.opentripplanner.ext.restapi.resources;
 
+import static org.opentripplanner.model.projectinfo.OtpProjectInfo.projectInfo;
+
+import com.sun.management.OperatingSystemMXBean;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
@@ -13,12 +16,19 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.UriInfo;
+import java.io.Serializable;
+import java.lang.management.ManagementFactory;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -54,6 +64,7 @@ import org.opentripplanner.ext.restapi.model.ApiTripShort;
 import org.opentripplanner.ext.restapi.model.ApiTripTimeShort;
 import org.opentripplanner.model.StopTimesInPattern;
 import org.opentripplanner.model.TripTimeOnDate;
+import org.opentripplanner.model.calendar.CalendarService;
 import org.opentripplanner.routing.graphfinder.DirectGraphFinder;
 import org.opentripplanner.standalone.api.OtpServerRequestContext;
 import org.opentripplanner.transit.model.network.Route;
@@ -537,15 +548,81 @@ public class IndexAPI {
     return Response.status(Status.OK).entity("NONE").build();
   }
 
-  /**
-   * List details about a specific service ID including which dates it runs on. Replaces the old
-   * /calendar. This is a placeholder endpoint and is not implemented yet.
-   */
+  @Path("/services/{date}")
+  public Response getServices(@PathParam("date") String date) {
+    List<String> serviceIdsRunning = new ArrayList<>();
+
+    LocalDate serviceDate = parseServiceDate("date", date);
+
+    CalendarService calendarService = serverContext.transitService().getCalendarService();
+
+    for (FeedScopedId serviceId : calendarService.getServiceIdsOnDate(serviceDate)) {
+      int n = serverContext.transitService().getServiceCode(serviceId);
+      if (n < 0) continue;
+      serviceIdsRunning.add(serviceId.toString());
+    }
+
+    return Response.status(Status.OK).entity(serviceIdsRunning).build();
+  }
+
+  /** Return the graph datetime. */
   @GET
-  @Path("/services/{serviceId}")
-  public Response getServices(@PathParam("serviceId") String serviceId) {
-    // TODO complete: index.serviceForId.get(serviceId);
-    return Response.status(Status.OK).entity("NONE").build();
+  @Path("/buildDateTime")
+  public Response getBuildDateTime() {
+    DateTimeFormatter formatterDT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    ZoneOffset offset = OffsetDateTime.now().getOffset();
+    LocalDateTime currentTime = LocalDateTime.ofEpochSecond(
+      serverContext.graph().getBuildTime().getTime() / 1000,
+      0,
+      offset
+    );
+    return Response.status(Status.OK).entity(currentTime.format(formatterDT)).build();
+  }
+
+  class VersionInfo implements Serializable {
+
+    public long Version;
+    public String buildDateTime;
+    public float totalMemoryGb, maxMemoryGb, usedMemoryGb, freeMemoryGb;
+    public double ProcessCpuLoad, SystemCpuLoad;
+  }
+
+  /** Return the graph version & datetime. */
+  @SuppressWarnings("restriction")
+  @GET
+  @Path("/versionInfo")
+  public Response getVersionInfo() {
+    DateTimeFormatter formatterDT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ");
+    ZoneOffset actualOffset = OffsetDateTime.now().getOffset();
+    Date buildDateTime = serverContext.graph().getBuildTime();
+    OffsetDateTime currentTime = OffsetDateTime.of(
+      LocalDateTime.ofEpochSecond(buildDateTime.getTime() / 1000, 0, ZoneOffset.UTC),
+      actualOffset
+    );
+
+    VersionInfo versionInfo = new VersionInfo();
+    versionInfo.buildDateTime = currentTime.format(formatterDT);
+
+    try {
+      versionInfo.Version =
+        projectInfo().version.major * 1000000 +
+        projectInfo().version.minor * 1000 +
+        projectInfo().version.patch;
+    } catch (Exception e) {
+      versionInfo.Version = 2000000;
+    }
+
+    Runtime rt = Runtime.getRuntime();
+    versionInfo.totalMemoryGb = (float) rt.totalMemory() / (1024 * 1024 * 1024);
+    versionInfo.freeMemoryGb = (float) rt.freeMemory() / (1024 * 1024 * 1024);
+    versionInfo.usedMemoryGb = versionInfo.totalMemoryGb - versionInfo.freeMemoryGb;
+    versionInfo.maxMemoryGb = (float) rt.maxMemory() / (1024 * 1024 * 1024);
+
+    OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
+    versionInfo.ProcessCpuLoad = osBean.getProcessCpuLoad();
+    versionInfo.SystemCpuLoad = osBean.getSystemCpuLoad();
+
+    return Response.status(Status.OK).entity(versionInfo).build();
   }
 
   /* PRIVATE METHODS */

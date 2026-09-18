@@ -42,7 +42,7 @@ public class RouteRequestBuilder implements Serializable {
   RoutingPreferences preferences;
   int numItineraries;
   boolean defaultRequest;
-  int maxWalkDistance;
+  Double maxWalkDistance;
   private final RouteRequest original;
 
   public RouteRequestBuilder(RouteRequest original) {
@@ -176,7 +176,7 @@ public class RouteRequestBuilder implements Serializable {
     return build();
   }
 
-  public void setMaxWalkDistance(int maxWalkDistance) {
+  public void setMaxWalkDistance(Double maxWalkDistance) {
     this.maxWalkDistance = maxWalkDistance;
   }
 

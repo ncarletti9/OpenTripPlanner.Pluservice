@@ -1,8 +1,10 @@
 package org.opentripplanner.street.model.edge;
 
 
+
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LineString;
+
 
 public final class TemporaryPartialStreetEdge extends StreetEdge implements TemporaryEdge {
 
@@ -86,5 +88,6 @@ public final class TemporaryPartialStreetEdge extends StreetEdge implements Temp
   public int getOutAngle() {
     return parentEdge.getOutAngle();
   }
+
 
 }

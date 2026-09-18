@@ -42,14 +42,27 @@ public interface RaptorTransferIndex {
     List<Transfer> transfers
   ) {
     var mode = request.mode();
+    var maxWalkDistance = request.walk().maxWalkDistance();
     // The transfers are filtered so that there is only one possible directional transfer
     // for a stop pair.
     return transfers
       .stream()
       .filter(transfer -> transfer.allowsMode(mode))
       .flatMap(s -> s.asRaptorTransfer(request).stream())
+      .filter(rt -> checkTransferMaxWalkDistance(rt, maxWalkDistance))
       .collect(toMap(RaptorTransfer::stop, Function.identity(), (a, b) -> a.c1() < b.c1() ? a : b))
       .values();
+  }
+
+  private static boolean checkTransferMaxWalkDistance(
+    RaptorTransfer transfer,
+    double maxWalkDistance
+  ) {
+    if (transfer instanceof DefaultRaptorTransfer) {
+      DefaultRaptorTransfer streetTransfer = (DefaultRaptorTransfer) transfer;
+      return streetTransfer.transfer().getDistanceMeters() <= maxWalkDistance;
+    }
+    return true;
   }
 
   Collection<DefaultRaptorTransfer> getForwardTransfers(int stopIndex);
